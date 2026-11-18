@@ -1,69 +1,69 @@
-import Image from "next/image";
+// Home page: what BrandProof does and how a judge can try it in 1 minute.
+// Owner: Member 5
+import Link from "next/link";
+
+const STEPS = [
+  { n: 1, title: "Try as Creator", text: "Click the button below — no sign-up needed." },
+  { n: 2, title: "Pick a sample or paste text", text: "Choose a sample post (try “Risky advertisement”) and click Check content." },
+  { n: 3, title: "Fix and send", text: "Each issue shows the rule it breaks and a fix. Accept, edit or dispute, then Send for approval." },
+  { n: 4, title: "Approve as Manager", text: "Switch to Manager (top right), open the draft and Approve or Request changes." },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
+    <div className="mx-auto max-w-4xl">
+      <section className="rounded-3xl bg-gradient-to-br from-indigo-600 to-indigo-800 p-8 text-white shadow-lg sm:p-12">
+        <p className="text-sm font-semibold uppercase tracking-wider text-indigo-200">BrandProof</p>
+        <h1 className="mt-2 text-3xl font-extrabold leading-tight sm:text-4xl">Catch off-brand content before it&apos;s published.</h1>
+        <p className="mt-4 max-w-2xl text-indigo-100">
+          Paste a post, ad, email or document. BrandProof checks it against your brand rules, approved facts and terminology, explains every issue
+          with the exact rule it breaks, suggests a fix that keeps your meaning, and a human makes the final approval.
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <a href="/api/role?as=creator" className="rounded-xl bg-white px-5 py-3 font-semibold text-indigo-700 shadow hover:bg-indigo-50">
+            Try as Content Creator →
           </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+          <a href="/api/role?as=manager" className="rounded-xl border border-white/60 px-5 py-3 font-semibold text-white hover:bg-white/10">
+            Try as Brand Manager
           </a>
         </div>
-      </main>
+      </section>
+
+      <section className="mt-10" aria-labelledby="how-heading">
+        <h2 id="how-heading" className="text-xl font-bold">
+          How to try it (about 1 minute)
+        </h2>
+        <ol className="mt-4 grid gap-4 sm:grid-cols-2">
+          {STEPS.map((s) => (
+            <li key={s.n} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-700">{s.n}</span>
+              <h3 className="mt-3 font-semibold">{s.title}</h3>
+              <p className="mt-1 text-sm text-slate-600">{s.text}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="mt-10 grid gap-4 sm:grid-cols-3">
+        {[
+          ["Cite or don’t flag", "Every issue points to a numbered rule or approved fact. AI findings without a real source are dropped."],
+          ["Facts that expire", "Approved claims have expiry dates, so outdated numbers are caught automatically."],
+          ["Humans decide", "Creators can dispute any flag, and nothing is approved without a manager’s click."],
+        ].map(([t, d]) => (
+          <div key={t} className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <h3 className="font-semibold text-indigo-700">{t}</h3>
+            <p className="mt-1 text-sm text-slate-600">{d}</p>
+          </div>
+        ))}
+      </section>
+
+      <p className="mt-8 text-sm text-slate-500">
+        This demo uses a fictional brand, <strong>BrightPath Learning</strong>. See its{" "}
+        <Link href="/brand" className="text-indigo-700 underline">
+          brand rules and approved facts
+        </Link>
+        .
+      </p>
     </div>
   );
 }
