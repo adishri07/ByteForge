@@ -1,0 +1,22 @@
+[
+  { "content": "Learn data science with BrightPath. Over 50,000+ learners already have.", "expected": [] },
+  { "content": "Our cheap plans are perfect for clients on a budget.", "expected": ["R-07", "R-04"] },
+  { "content": "100% placement guaranteed after this course.", "expected": ["R-09"] },
+  { "content": "We are the fastest growing edtech in India.", "expected": ["R-10"] },
+  { "content": "Rated 4.7 on Google Play by our learners.", "expected": [] },
+  { "content": "Rated 4.9 stars by thousands of learners.", "expected": ["R-08"] },
+  { "content": "Join 3 lakh learners today!", "expected": ["R-08"] },
+  { "content": "We partner with 200+ partner colleges.", "expected": ["F-07"] },
+  { "content": "Our 92% completion rate speaks for itself.", "expected": ["F-05"] },
+  { "content": "Better than SkillSprint in every way.", "expected": ["R-05"] },
+  { "content": "Bright Path launches its new Java course.", "expected": ["R-06"] },
+  { "content": "HURRY, seats are filling fast!!!", "expected": ["R-11", "R-12"] },
+  { "content": "New batch starts soon 🎉🎉🚀🔥", "expected": ["R-13"] },
+  { "content": "This course is lit, bro.", "expected": ["R-02"] },
+  { "content": "If you skip this class you'll fail your exams, simple as that.", "expected": ["R-01"] },
+  { "content": "Press the red button to unlock your certificate.", "expected": ["R-15"] },
+  { "content": "Students love our courses.", "expected": ["R-04"] },
+  { "content": "Our certificates are recognised by 150+ companies.", "expected": [] },
+  { "content": "Start your free 7-day trial and learn in 6 Indian languages.", "expected": [] },
+  { "content": "BrightPath is the number one choice for coders.", "expected": ["R-10"] }
+]

@@ -1,0 +1,72 @@
+[
+  {
+    "label": "✅ Clean Instagram post",
+    "title": "New Python course",
+    "channel": "Instagram",
+    "content": "Join 50,000+ learners on BrightPath! Our new Python for Beginners course starts Monday, with live doubt-solving sessions every weekday. Start your free 7-day trial today.",
+    "expected": []
+  },
+  {
+    "label": "🚨 Risky advertisement",
+    "title": "Summer offer ad",
+    "channel": "Advertisement",
+    "content": "GUARANTEED job in 30 days!!! India's #1 app for students 🔥🔥🔥🔥",
+    "expected": ["R-09", "R-11", "R-12", "R-10", "R-04", "R-13"]
+  },
+  {
+    "label": "⚠️ Wrong words",
+    "title": "Weekend workshop",
+    "channel": "LinkedIn",
+    "content": "Brightpath is hosting a cheap weekend workshop for all our clients. Seats are limited, so register soon.",
+    "expected": ["R-06", "R-07", "R-04"]
+  },
+  {
+    "label": "📅 Outdated fact",
+    "title": "Why BrightPath works",
+    "channel": "Website",
+    "content": "Our courses have a 92% completion rate and we work with 200+ partner colleges across India.",
+    "expected": ["F-05", "F-07"]
+  },
+  {
+    "label": "❓ Unsupported claims",
+    "title": "Exam season post",
+    "channel": "Instagram",
+    "content": "BrightPath is the best app for exam prep, trusted by 2 lakh learners and rated 4.9 stars.",
+    "expected": ["R-10", "R-08"]
+  },
+  {
+    "label": "🥊 Attacks a competitor",
+    "title": "Comparison post",
+    "channel": "LinkedIn",
+    "content": "Unlike LearnLeap, our teachers actually care about you. Why waste money on StudyNova?",
+    "expected": ["R-05", "R-03", "R-01"]
+  },
+  {
+    "label": "😬 Pushy tone",
+    "title": "Last chance reminder",
+    "channel": "Email",
+    "content": "Don't be the only one left behind. If you don't enrol today, you will regret it when everyone else gets the job.",
+    "expected": ["R-01"]
+  },
+  {
+    "label": "🗣️ Too casual",
+    "title": "Hackathon announcement",
+    "channel": "Instagram",
+    "content": "Yo bro, our coding hackathon is gonna be lit! Pull up this Saturday.",
+    "expected": ["R-02"]
+  },
+  {
+    "label": "✉️ Welcome email",
+    "title": "Welcome email",
+    "channel": "Email",
+    "content": "Hi there, welcome to BrightPath! You now have access to 1,200+ video lessons in 6 Indian languages. To begin, click the green button below.",
+    "expected": ["R-15"]
+  },
+  {
+    "label": "📝 Long sentence",
+    "title": "About our mentors",
+    "channel": "Website",
+    "content": "Our mentors, who come from many different industries and backgrounds and who have years of experience teaching beginners and working professionals alike, will guide you through every single step of your learning journey on BrightPath.",
+    "expected": ["R-14"]
+  }
+]
