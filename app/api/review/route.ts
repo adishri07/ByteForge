@@ -1,63 +1,44 @@
-// POST /api/review — the "Check content" button.
-// Saves the draft, runs every check, saves the findings, returns the result.
+// POST /api/review — the "Check content" button (text).
+// Runs every check for the current brand, saves the draft and findings, returns the result.
 // Owner: Member 1
 import { NextResponse } from "next/server";
-import { getDb } from "../../../lib/db";
 import { getBrand } from "../../../lib/brand";
 import { runReview } from "../../../lib/orchestrator";
+import { saveCheckedDraft } from "../../../lib/saveDraft";
+import { getWorkspaceId } from "../../../lib/workspace";
+
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    const { title, channel, content } = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body) return NextResponse.json({ error: "Something was wrong with the request. Please try again." }, { status: 400 });
+    const { title, channel, content } = body;
+
     if (!content || typeof content !== "string" || content.trim().length < 3) {
-      return NextResponse.json({ error: "Please paste some content to check." }, { status: 400 });
+      return NextResponse.json({ error: "Please paste some content to check (at least a few words)." }, { status: 400 });
     }
     if (content.length > 5000) {
       return NextResponse.json({ error: "Please keep content under 5,000 characters." }, { status: 400 });
     }
 
-    const db = getDb();
-    const brand = await getBrand();
-    const result = await runReview(content, channel || "General", brand);
-
-    // save the draft
-    const { data: draft, error: draftErr } = await db
-      .from("drafts")
-      .insert({
-        title: title?.trim() || "Untitled draft",
-        channel: channel || "General",
-        status: "in_review_by_creator",
-        risk_level: result.riskLevel,
-        risk_reasons: result.riskReasons,
-        ai_note: result.aiNote,
-      })
-      .select()
-      .single();
-    if (draftErr) throw draftErr;
-
-    // version 1 = what the creator pasted
-    const { error: vErr } = await db
-      .from("draft_versions")
-      .insert({ draft_id: draft.id, version_no: 1, content });
-    if (vErr) throw vErr;
-
-    // the findings
-    if (result.findings.length > 0) {
-      const { error: fErr } = await db
-        .from("findings")
-        .insert(result.findings.map((f) => ({ ...f, draft_id: draft.id, status: "open" })));
-      if (fErr) throw fErr;
+    const workspaceId = await getWorkspaceId();
+    const brand = await getBrand(workspaceId);
+    if (brand.rules.length === 0) {
+      return NextResponse.json(
+        { error: "This brand has no approved rules yet. A Brand Manager needs to upload and approve a guideline first (Guidelines page)." },
+        { status: 400 }
+      );
     }
 
-    // history
-    await db.from("audit_log").insert([
-      { draft_id: draft.id, actor_role: "creator", action: "Draft submitted for checking" },
-      {
-        draft_id: draft.id,
-        actor_role: "system",
-        action: `BrandProof found ${result.findings.length} issue(s) — risk ${result.riskLevel}`,
-      },
-    ]);
+    const result = await runReview(content, channel || "General", brand);
+    const draft = await saveCheckedDraft({
+      workspaceId,
+      title: String(title ?? ""),
+      channel: String(channel ?? "General"),
+      content,
+      ...result,
+    });
 
     return NextResponse.json({ draftId: draft.id, ...result });
   } catch (err) {
