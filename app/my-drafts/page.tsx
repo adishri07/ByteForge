@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import RiskBadge from "../../components/RiskBadge";
 
-type Row = { id: string; title: string; channel: string; risk_level: string; status: string; created_at: string; manager_comment: string | null };
+type Row = { id: string; title: string; kind?: string; channel: string; risk_level: string; status: string; created_at: string; manager_comment: string | null };
 
 const STATUS: Record<string, string> = {
   in_review_by_creator: "✏️ Fixing issues",
@@ -38,7 +38,10 @@ export default function MyDrafts() {
             <li key={d.id}>
               <Link href={`/drafts/${d.id}`} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-indigo-300">
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold">{d.title}</p>
+                  <p className="font-semibold">
+                    {d.kind === "image" && <span className="mr-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-normal">🖼️ Image</span>}
+                    {d.title}
+                  </p>
                   <p className="text-sm text-slate-500">
                     {d.channel} · {STATUS[d.status]} · {new Date(d.created_at).toLocaleString()}
                   </p>

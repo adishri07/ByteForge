@@ -1,0 +1,26 @@
+[
+  {
+    "label": "✅ On-brand poster",
+    "src": "/samples/on-brand-poster.png",
+    "title": "Python course poster",
+    "channel": "Instagram",
+    "alt_text": "Navy poster with the BrightPath logo: Learn Python at your own pace. Join 50,000+ learners. Start your free 7-day trial.",
+    "expected": []
+  },
+  {
+    "label": "🚨 Risky poster",
+    "src": "/samples/risky-poster.png",
+    "title": "Placement ad poster",
+    "channel": "Advertisement",
+    "alt_text": "",
+    "expected": ["R-09", "R-10", "R-11", "R-12", "R-04", "V-01", "V-02", "V-03", "V-04"]
+  },
+  {
+    "label": "👀 Low-contrast banner",
+    "src": "/samples/low-contrast-banner.png",
+    "title": "Doubt-solving banner",
+    "channel": "Website",
+    "alt_text": "Banner announcing live doubt-solving sessions every weekday",
+    "expected": ["V-03"]
+  }
+]

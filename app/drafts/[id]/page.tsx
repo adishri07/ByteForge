@@ -7,15 +7,18 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import FindingCard from "../../../components/FindingCard";
 import HighlightedText from "../../../components/HighlightedText";
+import ImagePreview from "../../../components/ImagePreview";
 import RiskBadge from "../../../components/RiskBadge";
 import { applyFixes } from "../../../lib/applyFixes";
-import type { Brand, SavedFinding } from "../../../lib/types";
+import type { Fact, Rule, SavedFinding } from "../../../lib/types";
 
 type DraftData = {
   draft: {
     id: string; title: string; channel: string; status: string; risk_level: string;
     risk_reasons: string[] | null; ai_note: string | null; manager_comment: string | null;
+    kind?: string; image_url?: string | null; alt_text?: string | null;
   };
+  brand?: { name: string; rules: Rule[]; facts: Fact[] };
   versions: { version_no: number; content: string }[];
   findings: SavedFinding[];
 };
@@ -29,9 +32,9 @@ const STATUS_TEXT: Record<string, string> = {
 export default function DraftPage() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<DraftData | null>(null);
-  const [brand, setBrand] = useState<Brand | null>(null);
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   const [reloadKey, setReloadKey] = useState(0);
   const load = () => setReloadKey((k) => k + 1);
@@ -45,10 +48,7 @@ export default function DraftPage() {
       });
   }, [id, reloadKey]);
 
-  useEffect(() => {
-    fetch("/api/brand").then((r) => r.json()).then(setBrand);
-  }, []);
-
+  const brand = data?.brand;
   const sourceText = (f: SavedFinding) =>
     f.rule_id
       ? brand?.rules.find((r) => r.id === f.rule_id)?.text ?? ""
@@ -73,22 +73,28 @@ export default function DraftPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action, ...payload }),
     });
-    const d = await res.json();
+    const d = await res.json().catch(() => ({}));
     if (!res.ok) {
-      alert(d.error || "Could not save.");
+      setActionError(d.error || "Could not save your choice. Please try again.");
       return;
     }
+    setActionError("");
     setData((prev) => (prev ? { ...prev, findings: prev.findings.map((f) => (f.id === fid ? d : f)) } : prev));
   };
 
   const send = async () => {
+    if (sending) return;
     setSending(true);
-    const res = await fetch(`/api/drafts/${id}/submit`, { method: "POST" });
-    const d = await res.json();
+    const res = await fetch(`/api/drafts/${id}/submit`, { method: "POST" }).catch(() => null);
+    const d = res ? await res.json().catch(() => ({})) : {};
     setSending(false);
-    if (!res.ok) alert(d.error || "Could not send.");
-    else load();
+    if (!res || !res.ok) setActionError(d.error || "Could not send. Please check your connection and try again.");
+    else {
+      setActionError("");
+      load();
+    }
   };
+  const isImage = draft.kind === "image";
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -108,14 +114,19 @@ export default function DraftPage() {
         </ul>
       )}
       {draft.ai_note && <p className="mt-3 rounded-lg bg-yellow-50 p-3 text-sm text-yellow-900">{draft.ai_note}</p>}
+      {actionError && (
+        <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-800">
+          {actionError}
+        </p>
+      )}
 
       {!editable && (
         <div className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
           <p className="font-semibold text-indigo-900">{STATUS_TEXT[draft.status]}</p>
           {draft.manager_comment && <p className="mt-1 text-sm text-slate-800">Manager&apos;s comment: “{draft.manager_comment}”</p>}
           {draft.status === "changes_requested" && (
-            <Link href={`/submit?from=${draft.id}`} className="mt-2 inline-block rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white">
-              Revise and re-check
+            <Link href={isImage ? "/submit?tab=image" : `/submit?from=${draft.id}`} className="mt-2 inline-block rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white">
+              {isImage ? "Upload a corrected image" : "Revise and re-check"}
             </Link>
           )}
         </div>
@@ -126,13 +137,17 @@ export default function DraftPage() {
           <div className="sticky top-20 space-y-4">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <h2 id="draft-heading" className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Your draft
+                {isImage ? "Your image" : "Your draft"}
               </h2>
-              <HighlightedText content={original} findings={findings} />
+              {isImage ? (
+                <ImagePreview url={draft.image_url ?? null} text={original} altText={draft.alt_text ?? null} />
+              ) : (
+                <HighlightedText content={original} findings={findings} />
+              )}
             </div>
             <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
               <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-green-800">
-                {editable ? "Preview after your fixes" : "Final version sent"}
+                {isImage ? (editable ? "Image text after your fixes" : "Final image text sent") : editable ? "Preview after your fixes" : "Final version sent"}
               </h2>
               <p className="whitespace-pre-wrap text-slate-900">{editable ? preview : data.versions[data.versions.length - 1]?.content}</p>
             </div>
