@@ -5,6 +5,7 @@
 //   not approved         -> "unsupported claim" (cites the claims rule)
 // Owner: Member 2
 import type { Brand, Fact, Finding } from "./types";
+import { findRule, RULE_PATTERNS } from "./ruleLookup";
 
 type Pattern = { re: RegExp; kind: "guarantee" | "superlative" | "number" };
 
@@ -59,6 +60,10 @@ function findFact(claim: string, facts: Fact[]): Fact | undefined {
 
 export function claimChecks(content: string, brand: Brand): Finding[] {
   const findings: Finding[] = [];
+  // this brand's rules for claims (if a brand has none, that kind of finding is skipped)
+  const claimsRule = findRule(brand, RULE_PATTERNS.approvedClaims);
+  const guaranteeRule = findRule(brand, RULE_PATTERNS.guarantee) ?? claimsRule;
+  const superlativeRule = findRule(brand, RULE_PATTERNS.superlative) ?? claimsRule;
   const seen = new Set<string>();
 
   for (const { re, kind } of PATTERNS) {
@@ -91,36 +96,39 @@ export function claimChecks(content: string, brand: Brand): Finding[] {
       }
 
       if (kind === "guarantee") {
+        if (!guaranteeRule) continue;
         findings.push({
           source: "rule",
           category: "claim",
           severity: "blocker",
           span_text: span,
-          rule_id: "R-09",
+          rule_id: guaranteeRule.id,
           fact_id: null,
           explanation: "We never promise guaranteed or 100% results. This kind of claim can be misleading and risky.",
           suggested_fix: null, // the AI suggests a rewrite that fits the sentence (see orchestrator)
           confidence: 1,
         });
       } else if (kind === "superlative") {
+        if (!superlativeRule) continue;
         findings.push({
           source: "rule",
           category: "claim",
           severity: "blocker",
           span_text: span,
-          rule_id: "R-10",
+          rule_id: superlativeRule.id,
           fact_id: null,
           explanation: `"${span}" is a superlative claim with no approved fact behind it.`,
           suggested_fix: soften(span),
           confidence: 1,
         });
       } else {
+        if (!claimsRule) continue;
         findings.push({
           source: "rule",
           category: "claim",
           severity: "blocker",
           span_text: span,
-          rule_id: "R-08",
+          rule_id: claimsRule.id,
           fact_id: null,
           explanation: `"${span}" is not in our Approved Facts list, so we can't publish it.`,
           suggested_fix: null,

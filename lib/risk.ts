@@ -18,7 +18,7 @@ export function scoreRisk(findings: Finding[]): { level: RiskLevel; reasons: str
     .slice(0, 3)
     .map((f) => `"${f.span_text}": ${f.explanation} (${f.rule_id ?? f.fact_id})`);
 
-  if (findings.length === 0) reasons.push("No issues found against BrightPath's brand rules.");
+  if (findings.length === 0) reasons.push("No issues found against this brand's rules.");
 
   return { level, reasons };
 }

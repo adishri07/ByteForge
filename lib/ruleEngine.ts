@@ -2,6 +2,7 @@
 // spelling, ALL CAPS, too many "!!!", too many emojis, very long sentences.
 // Owner: Member 2
 import type { Brand, Finding } from "./types";
+import { findRule, numberIn, RULE_PATTERNS } from "./ruleLookup";
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -20,10 +21,21 @@ function ruleText(brand: Brand, id: string) {
 
 export function ruleChecks(content: string, brand: Brand): Finding[] {
   const findings: Finding[] = [];
-  const has = (id: string) => brand.rules.some((r) => r.id === id);
+  // which of THIS brand's rules covers each built-in check (null = brand has no such rule, skip it)
+  const capsRule = findRule(brand, RULE_PATTERNS.allCaps);
+  const exclRule = findRule(brand, RULE_PATTERNS.exclamation);
+  const emojiRule = findRule(brand, RULE_PATTERNS.emoji);
+  const lengthRule = findRule(brand, RULE_PATTERNS.sentenceLength);
+
+  // every finding must cite an ACTIVE rule: use the word's own rule, else the brand's first terminology rule
+  const activeIds = new Set(brand.rules.map((r) => r.id));
+  const fallbackTermRule = brand.rules.find((r) => r.category === "terminology")?.id ?? null;
+  const termRule = (ruleId: string | null) => (ruleId && activeIds.has(ruleId) ? ruleId : fallbackTermRule);
 
   // 1. Banned words and competitor names (case-insensitive, whole words)
   for (const t of brand.terms.filter((t) => t.type === "banned" || t.type === "competitor")) {
+    const ruleId = termRule(t.rule_id);
+    if (!ruleId) continue;
     const re = new RegExp(`\\b${escape(t.term)}\\b`, "gi");
     for (const m of content.matchAll(re)) {
       // include a preceding "a"/"an" so "a cheap plan" -> "an affordable plan"
@@ -42,12 +54,12 @@ export function ruleChecks(content: string, brand: Brand): Finding[] {
         category: "terminology",
         severity: t.type === "competitor" ? "blocker" : "warning",
         span_text: span,
-        rule_id: t.rule_id,
+        rule_id: ruleId,
         fact_id: null,
         explanation:
           t.type === "competitor"
-            ? `Our guidelines don't allow naming competitors like "${m[0]}". ${ruleText(brand, t.rule_id ?? "")}`
-            : `"${m[0]}" is not a BrightPath word. ${ruleText(brand, t.rule_id ?? "")}`,
+            ? `Our guidelines don't allow naming competitors like "${m[0]}". ${ruleText(brand, ruleId)}`
+            : `"${m[0]}" is not one of our brand words. ${ruleText(brand, ruleId)}`,
         suggested_fix: fix,
         confidence: 1,
       });
@@ -56,6 +68,8 @@ export function ruleChecks(content: string, brand: Brand): Finding[] {
 
   // 2. Brand-name misspellings (case-sensitive, e.g. "Brightpath" -> "BrightPath")
   for (const t of brand.terms.filter((t) => t.type === "misspelling")) {
+    const ruleId = termRule(t.rule_id);
+    if (!ruleId || !t.replacement || t.replacement === t.term) continue;
     const re = new RegExp(`\\b${escape(t.term)}\\b`, "g");
     for (const m of content.matchAll(re)) {
       findings.push({
@@ -63,7 +77,7 @@ export function ruleChecks(content: string, brand: Brand): Finding[] {
         category: "terminology",
         severity: "warning",
         span_text: m[0],
-        rule_id: t.rule_id,
+        rule_id: ruleId,
         fact_id: null,
         explanation: `The brand name is spelled "${t.replacement}".`,
         suggested_fix: t.replacement,
@@ -72,8 +86,8 @@ export function ruleChecks(content: string, brand: Brand): Finding[] {
     }
   }
 
-  // 3. ALL CAPS words (R-11)
-  if (has("R-11")) {
+  // 3. ALL CAPS words
+  if (capsRule) {
     const allowed = new Set(["AI", "IIT", "JEE", "NEET", "UPSC", "CBSE", "ICSE", "SQL", "HTML", "CSS", "API", "FAQ", "PDF"]);
     for (const m of content.matchAll(/\b[A-Z]{4,}\b/g)) {
       if (allowed.has(m[0])) continue;
@@ -82,7 +96,7 @@ export function ruleChecks(content: string, brand: Brand): Finding[] {
         category: "tone",
         severity: "suggestion",
         span_text: m[0],
-        rule_id: "R-11",
+        rule_id: capsRule.id,
         fact_id: null,
         explanation: "Writing in ALL CAPS feels like shouting, which our brand avoids.",
         suggested_fix: m[0][0] + m[0].slice(1).toLowerCase(),
@@ -91,15 +105,15 @@ export function ruleChecks(content: string, brand: Brand): Finding[] {
     }
   }
 
-  // 4. More than one "!" in a row (R-12)
-  if (has("R-12")) {
+  // 4. More than one "!" in a row
+  if (exclRule) {
     for (const m of content.matchAll(/!{2,}/g)) {
       findings.push({
         source: "rule",
         category: "tone",
         severity: "suggestion",
         span_text: m[0],
-        rule_id: "R-12",
+        rule_id: exclRule.id,
         fact_id: null,
         explanation: "Use at most one exclamation mark; more feels pushy.",
         suggested_fix: "!",
@@ -108,9 +122,10 @@ export function ruleChecks(content: string, brand: Brand): Finding[] {
     }
   }
 
-  // 5. More than 2 emojis in the post (R-13)
-  if (has("R-13")) {
-    let budget = 2;
+  // 5. Too many emojis in the post (limit taken from the rule text, default 2)
+  if (emojiRule) {
+    const limit = numberIn(emojiRule, 2);
+    let budget = limit;
     for (const m of content.matchAll(/(?:\p{Extended_Pictographic}️?)+/gu)) {
       const emojis = m[0].match(/\p{Extended_Pictographic}️?/gu) ?? [];
       const keep = Math.min(budget, emojis.length);
@@ -121,9 +136,9 @@ export function ruleChecks(content: string, brand: Brand): Finding[] {
           category: "tone",
           severity: "suggestion",
           span_text: m[0],
-          rule_id: "R-13",
+          rule_id: emojiRule.id,
           fact_id: null,
-          explanation: "Our posts use at most 2 emojis in total.",
+          explanation: `Our posts use at most ${limit} emoji${limit === 1 ? "" : "s"} in total.`,
           suggested_fix: emojis.slice(0, keep).join(""),
           confidence: 1,
         });
@@ -131,20 +146,21 @@ export function ruleChecks(content: string, brand: Brand): Finding[] {
     }
   }
 
-  // 6. Very long sentences (R-14) — no automatic fix, the creator edits it
-  if (has("R-14")) {
+  // 6. Very long sentences (limit taken from the rule text, default 30) — no automatic fix
+  if (lengthRule) {
+    const maxWords = numberIn(lengthRule, 30);
     const sentences = content.match(/[^.!?\n]+[.!?]?/g) ?? [];
     for (const s of sentences) {
       const words = s.trim().split(/\s+/).filter(Boolean);
-      if (words.length > 30) {
+      if (words.length > maxWords) {
         findings.push({
           source: "rule",
           category: "readability",
           severity: "suggestion",
           span_text: s.trim(),
-          rule_id: "R-14",
+          rule_id: lengthRule.id,
           fact_id: null,
-          explanation: `This sentence has ${words.length} words. Keep sentences under 30 words so they're easy to read.`,
+          explanation: `This sentence has ${words.length} words. Keep sentences under ${maxWords} words so they're easy to read.`,
           suggested_fix: null,
           confidence: 1,
         });
