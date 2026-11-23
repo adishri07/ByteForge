@@ -4,12 +4,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useClientRole } from "../lib/clientRole";
+import WorkspaceSwitcher from "./WorkspaceSwitcher";
 
 const LINKS = [
   { href: "/submit", label: "Check content" },
+  { href: "/assistant", label: "Ask BrandProof" },
   { href: "/my-drafts", label: "My drafts" },
   { href: "/approvals", label: "Approvals" },
   { href: "/brand", label: "Brand rules" },
+  { href: "/guidelines", label: "Guidelines" },
 ];
 
 export default function NavBar() {
@@ -34,7 +37,9 @@ export default function NavBar() {
             </li>
           ))}
         </ul>
-        <div className="ml-auto flex items-center gap-1 rounded-full bg-slate-100 p-1 text-xs">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <WorkspaceSwitcher />
+        <div className="flex items-center gap-1 rounded-full bg-slate-100 p-1 text-xs">
           <span className="px-2 text-slate-600">Viewing as:</span>
           <a
             href={`/api/role?as=creator&next=${encodeURIComponent(pathname.startsWith("/approvals") ? "/submit" : pathname)}`}
@@ -44,12 +49,13 @@ export default function NavBar() {
             Creator
           </a>
           <a
-            href={`/api/role?as=manager&next=${encodeURIComponent(pathname.startsWith("/approvals") ? pathname : "/approvals")}`}
+            href={`/api/role?as=manager&next=${encodeURIComponent(/^\/(approvals|guidelines|brand)/.test(pathname) ? pathname : "/approvals")}`}
             className={`rounded-full px-3 py-1 ${role === "manager" ? "bg-indigo-600 font-semibold text-white" : "text-slate-700"}`}
             aria-current={role === "manager"}
           >
             Manager
           </a>
+        </div>
         </div>
       </nav>
     </header>

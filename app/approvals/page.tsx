@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import RiskBadge from "../../components/RiskBadge";
 
-type Row = { id: string; title: string; channel: string; risk_level: string; created_at: string; issues: number; disputes: number; status: string };
+type Row = { id: string; title: string; kind?: string; channel: string; risk_level: string; created_at: string; issues: number; disputes: number; status: string };
 const ORDER: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
 
 export default function ApprovalsPage() {
@@ -38,7 +38,10 @@ export default function ApprovalsPage() {
             <li key={d.id}>
               <Link href={`/approvals/${d.id}`} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-indigo-300">
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold">{d.title}</p>
+                  <p className="font-semibold">
+                    {d.kind === "image" && <span className="mr-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-normal">🖼️ Image</span>}
+                    {d.title}
+                  </p>
                   <p className="text-sm text-slate-500">
                     {d.channel} · {d.issues} issue(s) found{d.disputes > 0 ? ` · ${d.disputes} disputed` : ""} · sent {new Date(d.created_at).toLocaleString()}
                   </p>

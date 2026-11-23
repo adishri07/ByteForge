@@ -6,11 +6,22 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import RiskBadge from "../../../components/RiskBadge";
+import ImagePreview from "../../../components/ImagePreview";
 import { useClientRole } from "../../../lib/clientRole";
 import type { SavedFinding } from "../../../lib/types";
 
 type Data = {
-  draft: { id: string; title: string; channel: string; status: string; risk_level: string; manager_comment: string | null };
+  draft: {
+    id: string;
+    title: string;
+    channel: string;
+    status: string;
+    risk_level: string;
+    manager_comment: string | null;
+    kind?: string;
+    image_url?: string | null;
+    alt_text?: string | null;
+  };
   versions: { version_no: number; content: string }[];
   findings: SavedFinding[];
   audit: { id: number; actor_role: string; action: string; comment: string | null; created_at: string }[];
@@ -26,6 +37,8 @@ const DID: Record<string, string> = {
 export default function ApprovalPage() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<Data | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
   const role = useClientRole();
@@ -33,25 +46,40 @@ export default function ApprovalPage() {
   const load = () => setReloadKey((k) => k + 1);
 
   useEffect(() => {
-    fetch(`/api/drafts/${id}`).then((r) => r.json()).then(setData);
+    fetch(`/api/drafts/${id}`)
+      .then(async (r) => ({ ok: r.ok, d: await r.json() }))
+      .then(({ ok, d }) => (ok ? setData(d) : setLoadError(d.error || "Could not load this draft.")))
+      .catch(() => setLoadError("Could not load this draft."));
   }, [id, reloadKey]);
 
+  if (loadError)
+    return (
+      <div className="mx-auto max-w-2xl rounded-lg bg-red-50 p-4 text-red-800">
+        {loadError}{" "}
+        <Link href="/approvals" className="font-semibold underline">
+          Back to approvals
+        </Link>
+      </div>
+    );
   if (!data?.draft) return <p className="text-slate-600">Loading…</p>;
+  const isImage = data.draft.kind === "image";
   const { draft, versions, findings, audit } = data;
   const original = versions[0]?.content ?? "";
   const final = versions[versions.length - 1]?.content ?? "";
   const pending = draft.status === "pending_approval";
 
   const decide = async (decision: "approve" | "request_changes") => {
+    if (busy) return;
     setBusy(true);
+    setActionError("");
     const res = await fetch(`/api/drafts/${id}/decision`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ decision, comment }),
     });
-    const d = await res.json();
+    const d = await res.json().catch(() => ({}));
     setBusy(false);
-    if (!res.ok) alert(d.error || "Could not save.");
+    if (!res.ok) setActionError(d.error || "Could not save. Please try again.");
     else load();
   };
 
@@ -68,13 +96,20 @@ export default function ApprovalPage() {
         <RiskBadge level={draft.risk_level} />
       </div>
 
+      {isImage && (
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Image submitted</h2>
+          <ImagePreview url={draft.image_url ?? null} text={original} altText={draft.alt_text ?? null} />
+        </div>
+      )}
+
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Original (as submitted)</h2>
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">{isImage ? "Image text (as submitted)" : "Original (as submitted)"}</h2>
           <p className="whitespace-pre-wrap text-slate-800">{original}</p>
         </div>
         <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-green-800">Final (after creator&apos;s fixes)</h2>
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-green-800">{isImage ? "Image text after the creator\u2019s fixes" : "Final (after creator\u2019s fixes)"}</h2>
           <p className="whitespace-pre-wrap text-slate-900">{final}</p>
         </div>
       </div>
@@ -99,7 +134,7 @@ export default function ApprovalPage() {
                 {findings.map((f) => (
                   <tr key={f.id} className={`border-t border-slate-100 ${f.status === "disputed" ? "bg-amber-50" : ""}`}>
                     <td className="p-3">
-                      <span className="font-semibold">&quot;{f.span_text}&quot;</span>
+                      <span className="font-semibold">{f.rule_id?.startsWith("V-") ? f.span_text : `"${f.span_text}"`}</span>
                       <span className="block text-slate-600">{f.explanation}</span>
                     </td>
                     <td className="p-3 font-mono">{f.rule_id ?? f.fact_id}</td>
@@ -135,6 +170,11 @@ export default function ApprovalPage() {
           </p>
         ) : (
           <div className="mt-3 space-y-3">
+            {actionError && (
+              <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+                {actionError}
+              </p>
+            )}
             <label htmlFor="comment" className="block text-sm font-semibold">
               Comment (required if you request changes)
             </label>
