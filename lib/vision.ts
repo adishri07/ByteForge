@@ -45,7 +45,7 @@ Return:
 - alt_text_suggestion: a concise, useful alt text (max 25 words) describing the image for a screen-reader user, including its key text.`;
 
   const images = approvedLogo ? [approvedLogo, image] : [image];
-  const raw = await callGeminiJSON<VisionResult>(prompt, SCHEMA, { images, timeoutMs: 35000 });
+  const raw = await callGeminiJSON<VisionResult>(prompt, SCHEMA, { images, timeoutMs: 40000 });
 
   return {
     text_in_image: String(raw?.text_in_image ?? "").trim().slice(0, 5000),
