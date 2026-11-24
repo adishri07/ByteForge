@@ -1,0 +1,26 @@
+FitKart Communication Guidelines
+
+FitKart is a fictional online store for home fitness equipment in India.
+
+Voice
+- Motivating and positive, never body-shaming. Never comment on people's weight or looks.
+- Address the reader as "you". Use simple English.
+- Use exclamation marks freely to keep energy high!!
+- Use at most one exclamation mark per post.
+
+Terminology
+- Say "home gym", not "exercise machine".
+- Write "FitKart" (capital F and K). Not "Fitkart" or "Fit Kart".
+- Say "budget-friendly", never "cheap".
+
+Offers and pricing
+- Every discount must show the end date.
+- Always mention "free delivery" in every advertisement.
+- Never promise free delivery; delivery charges depend on pincode.
+- Do not promise weight-loss results or guaranteed outcomes.
+
+Approved facts
+- 2 lakh+ orders delivered (Ops dashboard, Sep 2026, valid till Sep 2027)
+- 7-day easy returns (Returns policy, valid till Dec 2027)
+
+Brand colours: Energy Orange #FF6B1A, Deep Charcoal #1F2328, Pure White #FFFFFF.
