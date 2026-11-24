@@ -68,6 +68,8 @@ export default function FindingCard({ finding: f, sourceText, readOnly, onAction
         {sourceText}
       </p>
 
+      {f.category === "visual" && <Swatches text={`${f.span_text} ${f.explanation}`} />}
+
       <div className="mt-3 text-sm">
         <span className="font-semibold">Change: </span>
         <del className="rounded bg-red-50 px-1 text-red-700">{f.span_text}</del>
@@ -158,5 +160,21 @@ export default function FindingCard({ finding: f, sourceText, readOnly, onAction
         </div>
       )}
     </article>
+  );
+}
+
+// Shows the colours mentioned in a visual issue (e.g. "#FF0055 → #4F46E5") as small swatches.
+function Swatches({ text }: { text: string }) {
+  const hexes = [...new Set(text.match(/#[0-9A-Fa-f]{6}\b/g) ?? [])].slice(0, 3);
+  if (hexes.length === 0) return null;
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-700">
+      {hexes.map((h) => (
+        <span key={h} className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5">
+          <span className="inline-block h-3 w-3 rounded-full border border-slate-300" style={{ backgroundColor: h }} aria-hidden />
+          <span className="font-mono">{h}</span>
+        </span>
+      ))}
+    </div>
   );
 }
