@@ -43,7 +43,7 @@ WORDS: ${brand.terms.map((t) => `${t.term} (${t.type}${t.replacement ? ` → ${t
 ${recent ? `CONVERSATION SO FAR:\n${recent}\n` : ""}
 QUESTION: ${message}`;
 
-  const raw = await callGeminiJSON<ChatAnswer>(prompt, SCHEMA, { timeoutMs: 25000 });
+  const raw = await callGeminiJSON<ChatAnswer>(prompt, SCHEMA, { timeoutMs: 40000 });
   return validateAnswer(raw, brand);
 }
 

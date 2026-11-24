@@ -59,7 +59,7 @@ DRAFT:
 ${content}
 """`;
 
-  const items = (await callGeminiJSON<Partial<Finding>[]>(prompt, FINDINGS_SCHEMA, { timeoutMs: 25000 })) ?? [];
+  const items = (await callGeminiJSON<Partial<Finding>[]>(prompt, FINDINGS_SCHEMA, { timeoutMs: 35000 })) ?? [];
   return items.map((f) => ({
     source: "ai",
     category: (f.category ?? "tone") as Finding["category"],

@@ -92,7 +92,7 @@ GUIDELINE:
 ${text.slice(0, MAX_CHARS)}
 """`;
 
-  const raw = await callGeminiJSON<ExtractedRuleset>(prompt, SCHEMA, { timeoutMs: 45000 });
+  const raw = await callGeminiJSON<ExtractedRuleset>(prompt, SCHEMA, { timeoutMs: 60000 });
   return cleanRuleset(raw);
 }
 

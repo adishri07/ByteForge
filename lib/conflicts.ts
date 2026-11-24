@@ -33,7 +33,7 @@ Return an empty list if there are no real contradictions.
 RULES:
 ${rules.map((r) => `${r.id}: ${r.text}`).join("\n")}`;
 
-  const raw = (await callGeminiJSON<Conflict[]>(prompt, SCHEMA, { timeoutMs: 30000 })) ?? [];
+  const raw = (await callGeminiJSON<Conflict[]>(prompt, SCHEMA, { timeoutMs: 35000 })) ?? [];
   return validateConflicts(raw, rules);
 }
 

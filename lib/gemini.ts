@@ -1,6 +1,6 @@
 // One shared way to call Gemini with a strict JSON answer, a time limit, and optional images.
-// If Google is busy (503 / 429 / overloaded) it waits and retries, then tries a backup model,
-// all inside the same total time limit.
+// If Google is busy (503 / 429 / overloaded) or a call hangs, it retries and then moves on to a
+// backup model — all inside the same total time limit, and no single attempt can use it all up.
 // Owner: Member 1
 import { GoogleGenAI } from "@google/genai";
 
@@ -49,9 +49,13 @@ export async function callGeminiJSON<T>(
   let lastErr: unknown = new Error("Gemini was not called");
 
   for (const model of MODELS) {
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // the main model gets more tries (Google's "busy" usually clears within seconds)
+    const tries = model === PRIMARY ? 4 : 2;
+    for (let attempt = 0; attempt < tries; attempt++) {
       const left = deadline - Date.now();
       if (left < 3000) throw new Error(`Gemini timed out after ${budget / 1000}s (last error: ${String(lastErr)})`);
+      // one slow attempt may use at most about half the budget, so a backup still has time
+      const attemptMs = Math.min(left, Math.max(10000, Math.round(budget * 0.45)));
       try {
         const request = getClient().models.generateContent({
           model,
@@ -64,16 +68,25 @@ export async function callGeminiJSON<T>(
         } as Parameters<GoogleGenAI["models"]["generateContent"]>[0]);
         const res = await Promise.race([
           request,
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Gemini timed out after ${Math.round(left / 1000)}s`)), left)),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Gemini attempt timed out after ${Math.round(attemptMs / 1000)}s`)), attemptMs)),
         ]);
         if (model !== PRIMARY) console.warn(`Gemini: answered by backup model ${model}`);
         return JSON.parse(res.text ?? "null") as T;
       } catch (err) {
+        if (isMissingModel(err)) {
+          // this key can't use this model: note it once and move on (keep the more useful earlier error)
+          console.warn(`Gemini: model ${model} is not available for this API key, skipping`);
+          if (model === PRIMARY) lastErr = err;
+          break;
+        }
         lastErr = err;
-        if (isMissingModel(err)) break; // try the next model
+        if (/attempt timed out/.test(String((err as Error)?.message))) {
+          console.warn(`Gemini slow on ${model}, trying the next model`);
+          break; // a hanging model: don't wait on it again
+        }
         if (!isBusy(err)) throw err; // a real error (bad request etc.): don't hide it
         console.warn(`Gemini busy on ${model} (attempt ${attempt + 1}): ${String((err as Error)?.message ?? err).slice(0, 120)}`);
-        await sleep(Math.min(attempt === 0 ? 1200 : 2500, Math.max(0, deadline - Date.now() - 3000)));
+        await sleep(Math.min([1000, 2000, 4000, 4000][attempt] ?? 4000, Math.max(0, deadline - Date.now() - 3000)));
       }
     }
   }
