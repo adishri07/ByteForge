@@ -3,10 +3,16 @@
 import Link from "next/link";
 
 const STEPS = [
-  { n: 1, title: "Try as Creator", text: "Click the button below — no sign-up needed." },
-  { n: 2, title: "Pick a sample or paste text", text: "Choose a sample post (try “Risky advertisement”) and click Check content." },
-  { n: 3, title: "Fix and send", text: "Each issue shows the rule it breaks and a fix. Accept, edit or dispute, then Send for approval." },
-  { n: 4, title: "Approve as Manager", text: "Switch to Manager (top right), open the draft and Approve or Request changes." },
+  { n: 1, title: "Check text or an image", text: "Try as Creator, pick a sample (try “Risky advertisement” or the 🖼️ Image tab’s “Risky poster”) and check it." },
+  { n: 2, title: "Fix and send", text: "Each issue shows the rule it breaks and a fix. Accept, edit or dispute, then Send for approval." },
+  { n: 3, title: "Approve as Manager", text: "Switch to Manager (top right), open the draft and Approve or Request changes." },
+  { n: 4, title: "Add your own brand", text: "As Manager, open Guidelines, upload a brand PDF/DOCX, fix what was extracted, resolve conflicts and approve." },
+];
+
+const NEW = [
+  { icon: "📄", title: "Guideline upload", text: "Upload a brand PDF, DOCX or TXT. Rules, words, facts and colours are extracted, contradictions flagged, and a manager approves.", href: "/guidelines" },
+  { icon: "💬", title: "Ask BrandProof", text: "Ask “Can I say X?” — answers come only from your rulebook, with rule numbers, and it says when something isn’t covered.", href: "/assistant" },
+  { icon: "🖼️", title: "Image checks", text: "Upload a poster or banner. We read its text, check colours against your palette, text contrast, the logo and alt text.", href: "/submit?tab=image" },
 ];
 
 export default function Home() {
@@ -16,7 +22,7 @@ export default function Home() {
         <p className="text-sm font-semibold uppercase tracking-wider text-indigo-200">BrandProof</p>
         <h1 className="mt-2 text-3xl font-extrabold leading-tight sm:text-4xl">Catch off-brand content before it&apos;s published.</h1>
         <p className="mt-4 max-w-2xl text-indigo-100">
-          Paste a post, ad, email or document. BrandProof checks it against your brand rules, approved facts and terminology, explains every issue
+          Paste a post or upload an image. BrandProof checks it against your brand rules, approved facts and terminology, explains every issue
           with the exact rule it breaks, suggests a fix that keeps your meaning, and a human makes the final approval.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
@@ -29,9 +35,26 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="mt-10" aria-labelledby="new-heading">
+        <h2 id="new-heading" className="text-xl font-bold">
+          New in this version
+        </h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          {NEW.map((f) => (
+            <Link key={f.title} href={f.href} className="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow">
+              <span className="text-2xl" aria-hidden>
+                {f.icon}
+              </span>
+              <h3 className="mt-2 font-semibold text-indigo-700">{f.title}</h3>
+              <p className="mt-1 text-sm text-slate-600">{f.text}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <section className="mt-10" aria-labelledby="how-heading">
         <h2 id="how-heading" className="text-xl font-bold">
-          How to try it (about 1 minute)
+          How to try it (about 2 minutes)
         </h2>
         <ol className="mt-4 grid gap-4 sm:grid-cols-2">
           {STEPS.map((s) => (
@@ -58,7 +81,7 @@ export default function Home() {
       </section>
 
       <p className="mt-8 text-sm text-slate-500">
-        This demo uses a fictional brand, <strong>BrightPath Learning</strong>. See its{" "}
+        The demo starts with a fictional brand, <strong>BrightPath Learning</strong>; switch brands from the 🏷️ menu at the top. See its{" "}
         <Link href="/brand" className="text-indigo-700 underline">
           brand rules and approved facts
         </Link>
