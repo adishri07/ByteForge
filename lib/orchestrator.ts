@@ -5,7 +5,10 @@ import { validate } from "./validator";
 import { ruleChecks } from "./ruleEngine";
 import { claimChecks } from "./claims";
 import { scoreRisk } from "./risk";
-import type { Brand, Finding } from "./types";
+import { analyseImage } from "./vision";
+import { visualChecks } from "./visualChecks";
+import { downloadFile } from "./storage";
+import type { Brand, Finding, VisionResult } from "./types";
 
 function overlaps(a: string, b: string) {
   const x = a.toLowerCase();
@@ -55,4 +58,57 @@ export async function runReview(content: string, channel: string, brand: Brand) 
   const risk = scoreRisk(merged);
 
   return { findings: merged, riskLevel: risk.level, riskReasons: risk.reasons, aiNote };
+}
+
+
+const LOGO_MIME: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp" };
+
+// Image check: read the image with AI, run the normal text checks on the text found in it,
+// then add the visual checks (colours, contrast, logo, alt text).
+export async function runImageReview(image: Buffer, mimeType: string, channel: string, altText: string, brand: Brand) {
+  // approved logo (if the brand uploaded one) so the AI can compare
+  let approvedLogo: { mimeType: string; base64: string } | null = null;
+  if (brand.logoPath) {
+    try {
+      const ext = brand.logoPath.split(".").pop()?.toLowerCase() ?? "png";
+      approvedLogo = { mimeType: LOGO_MIME[ext] ?? "image/png", base64: (await downloadFile(brand.logoPath)).toString("base64") };
+    } catch (err) {
+      console.error("Could not load approved logo:", err);
+    }
+  }
+
+  let vision: VisionResult;
+  try {
+    vision = await analyseImage({ mimeType, base64: image.toString("base64") }, brand.name, approvedLogo);
+  } catch (err) {
+    console.error("Image AI failed:", err);
+    // still run the colour and alt-text checks, which don't need AI
+    const fallback: VisionResult = { text_in_image: "", alt_text_suggestion: "", text_blocks: [], logo: { present: true, matches_approved: null, note: "" } };
+    const visual = await visualChecks(fallback, image, brand, altText);
+    const risk = scoreRisk(visual);
+    return {
+      textInImage: "",
+      altSuggestion: "",
+      findings: visual,
+      riskLevel: risk.level,
+      riskReasons: risk.reasons,
+      aiNote: "The AI image reader is unavailable right now, so only colour and alt-text checks are shown.",
+    };
+  }
+
+  const textResult = vision.text_in_image
+    ? await runReview(vision.text_in_image, channel, brand)
+    : { findings: [] as Finding[], aiNote: null as string | null };
+  const visual = await visualChecks(vision, image, brand, altText);
+  const findings = [...textResult.findings, ...visual];
+  const risk = scoreRisk(findings);
+
+  return {
+    textInImage: vision.text_in_image,
+    altSuggestion: vision.alt_text_suggestion,
+    findings,
+    riskLevel: risk.level,
+    riskReasons: risk.reasons,
+    aiNote: textResult.aiNote,
+  };
 }

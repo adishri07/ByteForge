@@ -11,9 +11,12 @@
   "dependencies": {
     "@google/genai": "^3.6.0",
     "@supabase/supabase-js": "^2.119.0",
+    "mammoth": "^1.13.0",
     "next": "16.4.6",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "sharp": "^0.35.5",
+    "unpdf": "^1.9.1"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",

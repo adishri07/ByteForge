@@ -1,20 +1,34 @@
-// Asks Gemini to review a draft against the brand rules and facts.
+// Asks Gemini to review a draft against the brand's own rules and facts.
 // Owner: Member 1
-import { GoogleGenAI, Type } from "@google/genai";
+import { Type } from "@google/genai";
+import { callGeminiJSON } from "./gemini";
 import type { Brand, Finding } from "./types";
 
-let client: GoogleGenAI | null = null;
-function getClient() {
-  if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not set");
-  if (!client) client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  return client;
-}
+const FINDINGS_SCHEMA = {
+  type: Type.ARRAY,
+  items: {
+    type: Type.OBJECT,
+    properties: {
+      category: { type: Type.STRING },
+      severity: { type: Type.STRING },
+      span_text: { type: Type.STRING },
+      rule_id: { type: Type.STRING, nullable: true },
+      fact_id: { type: Type.STRING, nullable: true },
+      explanation: { type: Type.STRING },
+      suggested_fix: { type: Type.STRING },
+      confidence: { type: Type.NUMBER },
+    },
+    required: ["category", "severity", "span_text", "explanation", "suggested_fix"],
+  },
+};
 
-const MODEL = "gemini-3.1-flash-lite";
 export async function aiReview(content: string, channel: string, brand: Brand): Promise<Finding[]> {
   const today = new Date().toISOString().slice(0, 10);
+  // visual rules (V-..) are for images, not text
+  const textRules = brand.rules.filter((r) => r.category !== "visual" && !r.id.startsWith("V-"));
+  if (textRules.length === 0) return [];
 
-  const prompt = `You are a careful brand compliance reviewer for BrightPath Learning, an online learning app.
+  const prompt = `You are a careful brand compliance reviewer for ${brand.name}.
 Review the DRAFT only against the RULES and APPROVED FACTS below. Today is ${today}.
 
 Focus on things simple word-matching cannot catch:
@@ -35,43 +49,17 @@ Strict rules for your answer:
 CHANNEL: ${channel}
 
 RULES:
-${brand.rules.map((r) => `${r.id} [${r.category}, ${r.severity}]: ${r.text}`).join("\n")}
+${textRules.map((r) => `${r.id} [${r.category}, ${r.severity}]: ${r.text}`).join("\n")}
 
 APPROVED FACTS (the only claims allowed):
-${brand.facts.map((f) => `${f.id}: ${f.claim} (expires ${f.expires_on})`).join("\n")}
+${brand.facts.map((f) => `${f.id}: ${f.claim} (expires ${f.expires_on})`).join("\n") || "(none)"}
 
 DRAFT:
 """
 ${content}
 """`;
 
-  const res = await getClient().models.generateContent({
-    model: MODEL,
-    contents: prompt,
-    config: {
-      temperature: 0,
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            category: { type: Type.STRING },
-            severity: { type: Type.STRING },
-            span_text: { type: Type.STRING },
-            rule_id: { type: Type.STRING, nullable: true },
-            fact_id: { type: Type.STRING, nullable: true },
-            explanation: { type: Type.STRING },
-            suggested_fix: { type: Type.STRING },
-            confidence: { type: Type.NUMBER },
-          },
-          required: ["category", "severity", "span_text", "explanation", "suggested_fix"],
-        },
-      },
-    },
-  });
-
-  const items = JSON.parse(res.text ?? "[]") as Partial<Finding>[];
+  const items = (await callGeminiJSON<Partial<Finding>[]>(prompt, FINDINGS_SCHEMA, { timeoutMs: 25000 })) ?? [];
   return items.map((f) => ({
     source: "ai",
     category: (f.category ?? "tone") as Finding["category"],
