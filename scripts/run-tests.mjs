@@ -10,6 +10,17 @@ import { readFile } from "node:fs/promises";
 const mode = process.argv[2] || "text";
 const base = (process.argv[3] || "http://localhost:3000").replace(/\/$/, "");
 const read = async (p) => JSON.parse(await readFile(new URL(p, import.meta.url), "utf8"));
+// fetch that retries twice if the network drops (college Wi-Fi), so one blip doesn't spoil a run
+async function post(url, init) {
+  for (let i = 0; ; i++) {
+    try {
+      return await fetch(url, init);
+    } catch (e) {
+      if (i >= 2) throw e;
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+  }
+}
 const pct = (a, b) => `${a}/${b} = ${((a / Math.max(b, 1)) * 100).toFixed(0)}%`;
 
 async function scoreFindings(tests, call) {
@@ -38,7 +49,7 @@ async function scoreFindings(tests, call) {
 if (mode === "text") {
   const tests = await read("../tests/test-drafts.json");
   await scoreFindings(tests, async (t, i) => {
-    const res = await fetch(`${base}/api/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: `Test ${i + 1}`, channel: "Instagram", content: t.content }) });
+    const res = await post(`${base}/api/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: `Test ${i + 1}`, channel: "Instagram", content: t.content }) });
     return res.json();
   });
 } else if (mode === "images") {
@@ -50,7 +61,7 @@ if (mode === "text") {
     form.append("title", `Test: ${t.title}`);
     form.append("channel", t.channel);
     form.append("alt_text", t.alt_text);
-    const res = await fetch(`${base}/api/review-image`, { method: "POST", body: form });
+    const res = await post(`${base}/api/review-image`, { method: "POST", body: form });
     return res.json();
   });
 } else if (mode === "chat") {
@@ -58,10 +69,17 @@ if (mode === "text") {
   let coveredOk = 0, citeOk = 0, citeTotal = 0, rewriteOk = 0, rewriteTotal = 0;
   const rows = [];
   for (const [i, t] of qs.entries()) {
-    const res = await fetch(`${base}/api/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: t.q, history: [] }) });
+    let res;
+    try {
+      res = await post(`${base}/api/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: t.q, history: [] }) });
+    } catch (e) {
+      rows.push({ q: i + 1, error: e.message });
+      continue;
+    }
     const d = await res.json().catch(() => ({}));
     if (!res.ok) { rows.push({ q: i + 1, error: d.error }); continue; }
-    const cited = new Set((d.citations || []).map((c) => c.id));
+    // citations come back as plain ids, e.g. ["R-07"]
+    const cited = new Set((d.citations || []).map((c) => (typeof c === "string" ? c : c.id)));
     const coverMatch = Boolean(d.covered) === t.covered;
     if (coverMatch) coveredOk++;
     const hit = t.expect_rules.filter((r) => cited.has(r));
