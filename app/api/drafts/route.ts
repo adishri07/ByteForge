@@ -3,13 +3,15 @@
 // Owner: Member 2
 import { NextResponse } from "next/server";
 import { getDb } from "../../../lib/db";
+import { getWorkspaceId } from "../../../lib/workspace";
 
 export async function GET(req: Request) {
   try {
     const db = getDb();
     const status = new URL(req.url).searchParams.get("status");
 
-    let query = db.from("drafts").select("*").order("created_at", { ascending: false }).limit(100);
+    const ws = await getWorkspaceId();
+    let query = db.from("drafts").select("*").eq("workspace_id", ws).order("created_at", { ascending: false }).limit(100);
     if (status) query = query.eq("status", status);
     const { data: drafts, error } = await query;
     if (error) throw error;

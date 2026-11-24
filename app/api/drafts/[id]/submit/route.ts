@@ -37,8 +37,16 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     const { text, applied } = applyFixes(latest.content, findings ?? []);
     const disputed = (findings ?? []).filter((f) => f.status === "disputed").length;
 
+    // image drafts: an accepted/edited "alt text missing" issue becomes the image's alt text
+    const altFix = (findings ?? []).find((f) => f.span_text === "Alt text missing" && (f.status === "accepted" || f.status === "edited"));
+    const altText = altFix ? (altFix.status === "edited" ? altFix.user_text : altFix.suggested_fix) : undefined;
+
     await db.from("draft_versions").insert({ draft_id: id, version_no: latest.version_no + 1, content: text });
-    await db.from("drafts").update({ status: "pending_approval" }).eq("id", id);
+    await db
+      .from("drafts")
+      .update({ status: "pending_approval", ...(altText ? { alt_text: altText } : {}) })
+      .eq("id", id)
+      .eq("status", "in_review_by_creator"); // a second click can't send it twice
     await db.from("audit_log").insert({
       draft_id: id,
       actor_role: "creator",
